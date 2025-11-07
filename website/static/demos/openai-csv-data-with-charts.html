@@ -463,8 +463,8 @@
           for (const detail of functionsDetails) {
             const args = JSON.parse(detail.arguments);
             const chartUrl = generateChartUrl(detail.name, args);
-            // Return object with text property as required by Deep Chat
-            results.push({ text: chartUrl });
+            // Return object with 'response' property as required by Deep Chat
+            results.push({ response: chartUrl });
           }
           return results;
         };
