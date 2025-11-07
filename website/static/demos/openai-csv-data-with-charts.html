@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Data Assistant</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/deep-chat@1.4.11/dist/deepChat.bundle.js"></script>
   <style>
     * {
       margin: 0;
@@ -14,13 +15,21 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #f5f5f5;
     }
 
     /* Floating Chat Button */
-    .chat-button {
+    .chat-button-container {
       position: fixed;
       bottom: 24px;
       right: 24px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .chat-button {
       width: 60px;
       height: 60px;
       border-radius: 50%;
@@ -34,7 +43,7 @@
       justify-content: center;
       font-size: 24px;
       transition: all 0.3s ease;
-      z-index: 1000;
+      position: relative;
     }
 
     .chat-button:hover {
@@ -44,6 +53,275 @@
 
     .chat-button.active {
       background: #c23934;
+    }
+
+    .settings-button {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: white;
+      color: #0176d3;
+      border: 2px solid #0176d3;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.3s ease;
+    }
+
+    .settings-button:hover {
+      background: #0176d3;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .status-indicator {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ff4444;
+      border: 2px solid white;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.ready {
+      background: #00c851;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Settings Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #0176d3 0%, #032d60 100%);
+      color: white;
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .modal-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .close-modal {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: background 0.2s;
+    }
+
+    .close-modal:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .info-banner {
+      background: #e8f4fd;
+      border-left: 4px solid #0176d3;
+      padding: 16px;
+      font-size: 13px;
+      color: #032d60;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      border-radius: 4px;
+    }
+
+    .info-banner strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #032d60;
+      margin-bottom: 8px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #d8dde6;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: monospace;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #0176d3;
+    }
+
+    .form-group small {
+      display: block;
+      color: #6c757d;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .form-group .example {
+      background: #f8f9fa;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-top: 8px;
+      color: #495057;
+      font-family: monospace;
+    }
+
+    .modal-footer {
+      padding: 0 24px 24px 24px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: #0176d3;
+      color: white;
+      flex: 1;
+    }
+
+    .btn-primary:hover {
+      background: #014d8f;
+    }
+
+    .btn-primary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #f3f3f3;
+      color: #032d60;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e5e5;
+    }
+
+    /* Status Messages */
+    .status-message {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-message.show {
+      display: flex;
+    }
+
+    .status-message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .status-message.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
     }
 
     /* Chat Container */
@@ -60,14 +338,14 @@
       flex-direction: column;
       overflow: hidden;
       z-index: 999;
-      animation: slideUp 0.3s ease;
+      animation: slideUpChat 0.3s ease;
     }
 
     .chat-container.open {
       display: flex;
     }
 
-    @keyframes slideUp {
+    @keyframes slideUpChat {
       from {
         opacity: 0;
         transform: translateY(20px);
@@ -78,7 +356,6 @@
       }
     }
 
-    /* Chat Header */
     .chat-header {
       background: linear-gradient(135deg, #0176d3 0%, #032d60 100%);
       color: white;
@@ -96,150 +373,10 @@
       gap: 8px;
     }
 
-    .chat-header-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .icon-btn {
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: white;
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
-    }
-
-    .icon-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    /* Chat Body */
-    .chat-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Settings Panel */
-    .settings-panel {
-      padding: 20px;
-      background: #f8f9fa;
-      display: none;
-      flex-direction: column;
-      gap: 16px;
-      height: 100%;
-      overflow-y: auto;
-    }
-
-    .settings-panel.active {
-      display: flex;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-group label {
-      font-size: 13px;
-      font-weight: 600;
-      color: #032d60;
-    }
-
-    .form-group input {
-      padding: 10px 12px;
-      border: 2px solid #d8dde6;
-      border-radius: 6px;
-      font-size: 13px;
-      font-family: monospace;
-      transition: border-color 0.2s;
-    }
-
-    .form-group input:focus {
-      outline: none;
-      border-color: #0176d3;
-    }
-
-    .form-group small {
-      color: #6c757d;
+    .chat-status {
       font-size: 11px;
-    }
-
-    .btn {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: #0176d3;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #014d8f;
-    }
-
-    .btn-secondary {
-      background: #f3f3f3;
-      color: #032d60;
-    }
-
-    .btn-secondary:hover {
-      background: #e5e5e5;
-    }
-
-    .status-message {
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      display: none;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-message.show {
-      display: flex;
-    }
-
-    .status-message.success {
-      background: #d4edda;
-      color: #155724;
-    }
-
-    .status-message.error {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
-    .status-message.info {
-      background: #d1ecf1;
-      color: #0c5460;
-    }
-
-    /* Chat View */
-    .chat-view {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-
-    .chat-view.hidden {
-      display: none;
+      opacity: 0.9;
+      margin-top: 2px;
     }
 
     #chat {
@@ -248,18 +385,19 @@
       height: 100%;
     }
 
-    /* Loading */
     .loading-overlay {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.95);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 10;
+      flex-direction: column;
+      gap: 16px;
     }
 
     .loading-overlay.active {
@@ -280,14 +418,10 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Info Banner */
-    .info-banner {
-      background: #e8f4fd;
-      border-left: 4px solid #0176d3;
-      padding: 12px;
-      font-size: 12px;
+    .loading-text {
       color: #032d60;
-      line-height: 1.5;
+      font-size: 14px;
+      font-weight: 500;
     }
 
     /* Responsive */
@@ -300,9 +434,14 @@
         height: 70vh;
       }
 
-      .chat-button {
+      .chat-button-container {
         bottom: 16px;
         right: 16px;
+      }
+
+      .modal {
+        width: 95%;
+        margin: 12px;
       }
     }
   </style>
@@ -315,6 +454,8 @@
       apiKey: '',
       dataUrl: ''
     };
+
+    let chatInitialized = false;
 
     // Load settings from localStorage
     function loadSettings() {
@@ -329,11 +470,27 @@
       if (dataUrlParam) {
         settings.dataUrl = dataUrlParam;
       }
+
+      updateStatusIndicator();
     }
 
     // Save settings to localStorage
     function saveSettings() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      updateStatusIndicator();
+    }
+
+    function updateStatusIndicator() {
+      const indicator = document.getElementById('statusIndicator');
+      if (settings.apiKey && settings.dataUrl) {
+        indicator.classList.add('ready');
+      } else {
+        indicator.classList.remove('ready');
+      }
+    }
+
+    function isConfigured() {
+      return settings.apiKey && settings.dataUrl;
     }
 
     // Chart generation functions
@@ -429,12 +586,12 @@
         type: 'function',
         function: {
           name: 'create_line_chart',
-          description: 'Creates a line chart to visualize trends',
+          description: 'Creates a line chart to visualize trends over time',
           parameters: {
             type: 'object',
             properties: {
-              title: { type: 'string' },
-              labels: { type: 'array', items: { type: 'string' } },
+              title: { type: 'string', description: 'Chart title' },
+              labels: { type: 'array', items: { type: 'string' }, description: 'X-axis labels' },
               datasets: {
                 type: 'array',
                 items: {
@@ -456,12 +613,12 @@
         type: 'function',
         function: {
           name: 'create_bar_chart',
-          description: 'Creates a bar chart to compare values',
+          description: 'Creates a bar chart to compare values across categories',
           parameters: {
             type: 'object',
             properties: {
-              title: { type: 'string' },
-              labels: { type: 'array', items: { type: 'string' } },
+              title: { type: 'string', description: 'Chart title' },
+              labels: { type: 'array', items: { type: 'string' }, description: 'Category labels' },
               datasets: {
                 type: 'array',
                 items: {
@@ -483,14 +640,14 @@
         type: 'function',
         function: {
           name: 'create_pie_chart',
-          description: 'Creates a pie chart to show distribution',
+          description: 'Creates a pie chart to show proportional distribution',
           parameters: {
             type: 'object',
             properties: {
-              title: { type: 'string' },
-              labels: { type: 'array', items: { type: 'string' } },
-              data: { type: 'array', items: { type: 'number' } },
-              colors: { type: 'array', items: { type: 'string' } },
+              title: { type: 'string', description: 'Chart title' },
+              labels: { type: 'array', items: { type: 'string' }, description: 'Slice labels' },
+              data: { type: 'array', items: { type: 'number' }, description: 'Slice values' },
+              colors: { type: 'array', items: { type: 'string' }, description: 'Slice colors (optional)' },
             },
             required: ['title', 'labels', 'data'],
           },
@@ -549,23 +706,14 @@
 
     // Initialize chat
     async function initializeChat() {
+      if (chatInitialized) return;
+
       const chatElement = document.getElementById('chat');
       const loadingOverlay = document.getElementById('loading');
-      const statusMessage = document.getElementById('status');
-
-      if (!settings.apiKey) {
-        showStatus('error', 'Please configure your OpenAI API key in settings');
-        return;
-      }
-
-      if (!settings.dataUrl) {
-        showStatus('error', 'Please provide a data URL in settings');
-        return;
-      }
 
       try {
         loadingOverlay.classList.add('active');
-        showStatus('info', 'Loading data...');
+        document.getElementById('loadingText').textContent = 'Loading data...';
 
         const fileType = settings.dataUrl.endsWith('.json') ? 'json' : 'csv';
         const data = await loadRemoteData(settings.dataUrl, fileType);
@@ -574,9 +722,11 @@
           throw new Error('No data loaded from file');
         }
 
+        document.getElementById('loadingText').textContent = 'Initializing chat...';
+
         const systemPrompt = createDataContextPrompt(
           data,
-          'You are a helpful data analyst. Use chart functions when asked to visualize data.',
+          'You are a helpful data analyst assistant. Analyze the data and create visualizations when requested.',
           50
         );
 
@@ -638,148 +788,186 @@
         chatElement.htmlClassOverrides = { default: {} };
 
         loadingOverlay.classList.remove('active');
-        showStatus('success', `Ready! ${data.length} rows loaded.`);
-        hideSettingsPanel();
+        chatInitialized = true;
+
+        // Update chat status
+        document.getElementById('chatStatus').textContent = `Ready • ${data.length} rows loaded`;
 
       } catch (error) {
         console.error('Error:', error);
         loadingOverlay.classList.remove('active');
-        showStatus('error', `Failed: ${error.message}`);
+        alert(`Failed to initialize: ${error.message}\n\nPlease check your settings.`);
       }
     }
 
-    function showStatus(type, message) {
-      const statusMessage = document.getElementById('status');
-      statusMessage.className = `status-message ${type} show`;
-      statusMessage.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
-
-      setTimeout(() => {
-        statusMessage.classList.remove('show');
-      }, 5000);
+    // Modal functions
+    function showModal() {
+      document.getElementById('modalOverlay').classList.add('show');
+      // Populate form
+      document.getElementById('apiKeyInput').value = settings.apiKey || '';
+      document.getElementById('dataUrlInput').value = settings.dataUrl || '';
     }
 
-    function hideSettingsPanel() {
-      document.getElementById('settingsPanel').classList.remove('active');
-      document.getElementById('chatView').classList.remove('hidden');
+    function hideModal() {
+      document.getElementById('modalOverlay').classList.remove('show');
     }
 
-    function showSettingsPanel() {
-      document.getElementById('settingsPanel').classList.add('active');
-      document.getElementById('chatView').classList.add('hidden');
+    function showChatWindow() {
+      document.getElementById('chatContainer').classList.add('open');
+      document.getElementById('chatButton').classList.add('active');
+    }
+
+    function hideChatWindow() {
+      document.getElementById('chatContainer').classList.remove('open');
+      document.getElementById('chatButton').classList.remove('active');
     }
 
     // UI Event Handlers
     window.addEventListener('load', () => {
       loadSettings();
 
-      // Populate form with saved settings
-      document.getElementById('apiKeyInput').value = settings.apiKey || '';
-      document.getElementById('dataUrlInput').value = settings.dataUrl || '';
-
-      // Toggle chat window
+      // Chat button - open chat or show settings modal
       document.getElementById('chatButton').addEventListener('click', () => {
-        const container = document.getElementById('chatContainer');
-        const button = document.getElementById('chatButton');
-        container.classList.toggle('open');
-        button.classList.toggle('active');
+        const isOpen = document.getElementById('chatContainer').classList.contains('open');
+
+        if (isOpen) {
+          hideChatWindow();
+        } else {
+          if (!isConfigured()) {
+            showModal();
+          } else {
+            if (!chatInitialized) {
+              initializeChat();
+            }
+            showChatWindow();
+          }
+        }
       });
 
       // Settings button
       document.getElementById('settingsBtn').addEventListener('click', () => {
-        showSettingsPanel();
+        showModal();
       });
 
-      // Save settings
-      document.getElementById('saveSettingsBtn').addEventListener('click', () => {
-        settings.apiKey = document.getElementById('apiKeyInput').value.trim();
-        settings.dataUrl = document.getElementById('dataUrlInput').value.trim();
+      // Close modal
+      document.getElementById('closeModal').addEventListener('click', () => {
+        hideModal();
+      });
+
+      // Close modal on overlay click
+      document.getElementById('modalOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'modalOverlay') {
+          hideModal();
+        }
+      });
+
+      // Save and connect
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        const dataUrl = document.getElementById('dataUrlInput').value.trim();
+
+        if (!apiKey) {
+          alert('Please enter your OpenAI API key');
+          return;
+        }
+
+        if (!dataUrl) {
+          alert('Please enter a data URL');
+          return;
+        }
+
+        settings.apiKey = apiKey;
+        settings.dataUrl = dataUrl;
         saveSettings();
-        showStatus('success', 'Settings saved!');
-        initializeChat();
-      });
 
-      // Close settings
-      document.getElementById('closeSettingsBtn').addEventListener('click', () => {
-        hideSettingsPanel();
+        hideModal();
+        await initializeChat();
+        showChatWindow();
       });
-
-      // Auto-initialize if settings are present
-      if (settings.apiKey && settings.dataUrl) {
-        setTimeout(() => {
-          initializeChat();
-        }, 500);
-      } else {
-        showSettingsPanel();
-      }
     });
   </script>
 </head>
 <body>
-  <!-- Floating Chat Button -->
-  <button id="chatButton" class="chat-button" title="Open AI Assistant">
-    <i class="fas fa-comments"></i>
-  </button>
+  <!-- Floating Buttons -->
+  <div class="chat-button-container">
+    <button id="settingsBtn" class="settings-button" title="Settings">
+      <i class="fas fa-cog"></i>
+    </button>
+    <button id="chatButton" class="chat-button" title="AI Assistant">
+      <i class="fas fa-comments"></i>
+      <span id="statusIndicator" class="status-indicator"></span>
+    </button>
+  </div>
 
-  <!-- Chat Container -->
-  <div id="chatContainer" class="chat-container">
-    <!-- Header -->
-    <div class="chat-header">
-      <h3>
-        <i class="fas fa-chart-line"></i>
-        Data Assistant
-      </h3>
-      <div class="chat-header-actions">
-        <button id="settingsBtn" class="icon-btn" title="Settings">
+  <!-- Settings Modal -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>
           <i class="fas fa-cog"></i>
+          Setup Data Assistant
+        </h2>
+        <button id="closeModal" class="close-modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="info-banner">
+          <strong>Quick Start</strong>
+          Enter your OpenAI API key and a URL to your CSV or JSON data file. Your API key is stored locally in your browser only.
+        </div>
+
+        <div class="form-group">
+          <label for="apiKeyInput">
+            <i class="fas fa-key"></i> OpenAI API Key
+          </label>
+          <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off" />
+          <small>Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a></small>
+        </div>
+
+        <div class="form-group">
+          <label for="dataUrlInput">
+            <i class="fas fa-database"></i> Data URL (CSV or JSON)
+          </label>
+          <input type="text" id="dataUrlInput" placeholder="https://..." autocomplete="off" />
+          <small>Public URL to your CSV or JSON file</small>
+          <div class="example">
+            <i class="fas fa-lightbulb"></i> Example: https://raw.githubusercontent.com/plotly/datasets/master/iris.csv
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="saveBtn" class="btn btn-primary">
+          <i class="fas fa-rocket"></i>
+          Save & Connect
         </button>
       </div>
     </div>
+  </div>
 
-    <!-- Body -->
-    <div class="chat-body">
+  <!-- Chat Container -->
+  <div id="chatContainer" class="chat-container">
+    <div class="chat-header">
+      <div>
+        <h3>
+          <i class="fas fa-chart-line"></i>
+          Data Assistant
+        </h3>
+        <div id="chatStatus" class="chat-status">Initializing...</div>
+      </div>
+    </div>
+
+    <div style="position: relative; flex: 1; display: flex; flex-direction: column;">
       <!-- Loading Overlay -->
       <div id="loading" class="loading-overlay">
         <div class="spinner"></div>
+        <div id="loadingText" class="loading-text">Loading...</div>
       </div>
 
-      <!-- Settings Panel -->
-      <div id="settingsPanel" class="settings-panel">
-        <div class="info-banner">
-          <strong>Setup Required:</strong> Configure your OpenAI API key and data source URL.
-        </div>
-
-        <div id="status" class="status-message"></div>
-
-        <div class="form-group">
-          <label for="apiKeyInput">OpenAI API Key</label>
-          <input type="password" id="apiKeyInput" placeholder="sk-..." />
-          <small>Stored locally in your browser</small>
-        </div>
-
-        <div class="form-group">
-          <label for="dataUrlInput">Data URL (CSV or JSON)</label>
-          <input type="text" id="dataUrlInput" placeholder="https://..." />
-          <small>Public URL to CSV or JSON file</small>
-        </div>
-
-        <div class="form-group">
-          <small><strong>Example:</strong> https://raw.githubusercontent.com/plotly/datasets/master/iris.csv</small>
-        </div>
-
-        <div style="display: flex; gap: 8px; margin-top: auto;">
-          <button id="saveSettingsBtn" class="btn btn-primary" style="flex: 1">
-            <i class="fas fa-save"></i> Save & Connect
-          </button>
-          <button id="closeSettingsBtn" class="btn btn-secondary">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Chat View -->
-      <div id="chatView" class="chat-view hidden">
-        <deep-chat id="chat"></deep-chat>
-      </div>
+      <!-- Chat -->
+      <deep-chat id="chat"></deep-chat>
     </div>
   </div>
 </body>
