@@ -455,9 +455,9 @@ You can try this feature by creating a simple HTML page:
     // Initialize chat when page loads
     window.addEventListener('load', async () => {
       try {
-        // Load your CSV data
+        // Load your CSV data (must have CORS enabled)
         const data = await loadRemoteData(
-          'https://storage.googleapis.com/gdsshopify/MonteCarlo.csv',
+          'https://raw.githubusercontent.com/plotly/datasets/master/iris.csv',
           'csv'
         );
 
