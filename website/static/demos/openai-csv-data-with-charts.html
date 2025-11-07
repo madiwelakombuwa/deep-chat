@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat with CSV Data + Charts - Deep Chat + OpenAI Demo</title>
+  <title>Chat with CSV Data + Charts - Deep Chat + OpenAI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/design-system/2.22.3/styles/salesforce-lightning-design-system.min.css">
   <style>
     * {
       margin: 0;
@@ -12,176 +13,136 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Salesforce Sans', Arial, sans-serif;
+      background: #f3f3f3;
       min-height: 100vh;
-      padding: 20px;
+      display: flex;
+      flex-direction: column;
     }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      overflow: hidden;
+    .slds-scope {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
 
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Header */
+    .app-header {
+      background: linear-gradient(to right, #032d60, #0176d3);
       color: white;
-      padding: 30px;
-      text-align: center;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .header h1 {
-      font-size: 2.5em;
-      margin-bottom: 10px;
-      font-weight: 700;
-    }
-
-    .header p {
-      font-size: 1.1em;
-      opacity: 0.95;
-    }
-
-    .content {
-      padding: 30px;
-    }
-
-    .info-box {
-      background: #f8f9fa;
-      border-left: 4px solid #667eea;
-      padding: 20px;
-      margin-bottom: 25px;
-      border-radius: 4px;
-    }
-
-    .info-box h3 {
-      color: #667eea;
-      margin-bottom: 10px;
-      font-size: 1.2em;
-    }
-
-    .info-box ul {
-      margin-left: 20px;
-      line-height: 1.8;
-    }
-
-    .info-box li {
-      margin-bottom: 5px;
-    }
-
-    .config-section {
-      background: #fff3cd;
-      border: 2px solid #ffc107;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 25px;
-    }
-
-    .config-section h3 {
-      color: #856404;
-      margin-bottom: 15px;
+    .app-header h1 {
+      font-size: 1.75rem;
+      font-weight: 300;
+      margin: 0;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 0.75rem;
     }
 
-    .config-section input {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #ffc107;
-      border-radius: 6px;
-      font-size: 14px;
-      font-family: 'Courier New', monospace;
-      margin-bottom: 10px;
-    }
-
-    .config-section button {
-      background: #667eea;
+    .app-header .slds-badge {
+      background: rgba(255, 255, 255, 0.2);
       color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
-    .config-section button:hover {
-      background: #5568d3;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    /* Main container - full width */
+    .main-container {
+      flex: 1;
+      display: flex;
+      gap: 0;
+      background: #f3f3f3;
     }
 
-    .config-section button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      transform: none;
+    /* Sidebar */
+    .sidebar {
+      width: 380px;
+      background: white;
+      border-right: 1px solid #d8dde6;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
     }
 
-    .config-section small {
-      color: #856404;
-      display: block;
-      margin-top: 5px;
-      font-size: 13px;
+    .sidebar-content {
+      padding: 1.5rem;
+      flex: 1;
     }
 
-    .chat-container {
-      margin-top: 25px;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    /* Chat area - takes remaining width */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: white;
+      position: relative;
     }
 
-    .status {
-      padding: 15px;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      font-weight: 500;
+    /* SLDS Card modifications */
+    .slds-card {
+      margin-bottom: 1rem;
     }
 
-    .status.success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+    .slds-card__header {
+      padding: 0.75rem 1rem;
     }
 
-    .status.error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+    .slds-card__body {
+      padding: 0.75rem 1rem;
     }
 
-    .status.loading {
-      background: #d1ecf1;
-      color: #0c5460;
-      border: 1px solid #bee5eb;
+    /* Form elements */
+    .slds-form-element {
+      margin-bottom: 1rem;
     }
 
-    .footer {
-      text-align: center;
-      padding: 20px;
-      background: #f8f9fa;
-      color: #6c757d;
-      font-size: 14px;
+    .slds-input,
+    .slds-textarea {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 0.875rem;
     }
 
-    .footer a {
-      color: #667eea;
-      text-decoration: none;
-      font-weight: 600;
+    /* Buttons */
+    .slds-button {
+      transition: all 0.2s ease;
     }
 
-    .footer a:hover {
-      text-decoration: underline;
+    .slds-button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Status alerts */
+    .status-alert {
+      margin-bottom: 1rem;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Chat container */
+    #chat-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
     #chat {
+      flex: 1;
+      min-height: 0;
       display: none;
     }
 
@@ -189,33 +150,119 @@
       display: block;
     }
 
-    .badge {
-      display: inline-block;
-      background: #667eea;
-      color: white;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-left: 10px;
+    /* Config section */
+    #configSection {
+      padding: 1.5rem;
     }
 
-    .badge.new {
-      background: #28a745;
+    #configSection.hidden {
+      display: none;
     }
 
-    code {
-      background: #fff;
-      padding: 2px 6px;
+    /* Feature list */
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .feature-list li {
+      padding: 0.5rem 0;
+      padding-left: 1.75rem;
+      position: relative;
+      line-height: 1.5;
+    }
+
+    .feature-list li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #0176d3;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    /* Example URLs */
+    .url-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .url-list li {
+      margin: 0.5rem 0;
+    }
+
+    .url-code {
+      background: #f3f3f3;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.25rem;
+      font-family: monospace;
+      font-size: 0.8125rem;
+      display: block;
+      word-break: break-all;
+      border-left: 3px solid #0176d3;
+    }
+
+    /* Loading spinner */
+    .slds-spinner_container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .slds-spinner_container.active {
+      display: flex;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #d8dde6;
+      }
+    }
+
+    /* Reset button */
+    .reset-section {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #d8dde6;
+      background: #fafaf9;
+    }
+
+    /* Hide scrollbar for sidebar */
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+      background: #f3f3f3;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: #d8dde6;
       border-radius: 3px;
-      font-size: 12px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb:hover {
+      background: #c9ced6;
     }
   </style>
   <script type="module">
     // Chart generation functions
     function generateQuickChartUrl(config) {
       const encodedConfig = encodeURIComponent(JSON.stringify(config));
-      return `https://quickchart.io/chart?c=${encodedConfig}&width=600&height=400`;
+      return `https://quickchart.io/chart?c=${encodedConfig}&width=800&height=500`;
     }
 
     function createLineChart({ title, labels, datasets }) {
@@ -226,18 +273,23 @@
           datasets: datasets.map(dataset => ({
             label: dataset.label,
             data: dataset.data,
-            borderColor: dataset.color || 'rgb(75, 192, 192)',
-            backgroundColor: dataset.color || 'rgba(75, 192, 192, 0.2)',
-            tension: 0.1,
+            borderColor: dataset.color || 'rgb(1, 118, 211)',
+            backgroundColor: dataset.color || 'rgba(1, 118, 211, 0.1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
           })),
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: title, font: { size: 16 } },
+            title: { display: true, text: title, font: { size: 18, weight: 'bold' } },
             legend: { display: true, position: 'top' },
           },
-          scales: { y: { beginAtZero: true } },
+          scales: {
+            y: { beginAtZero: true },
+            x: { grid: { display: false } }
+          },
         },
       };
     }
@@ -250,18 +302,21 @@
           datasets: datasets.map(dataset => ({
             label: dataset.label,
             data: dataset.data,
-            backgroundColor: dataset.color || 'rgba(54, 162, 235, 0.5)',
-            borderColor: dataset.color || 'rgb(54, 162, 235)',
+            backgroundColor: dataset.color || 'rgba(1, 118, 211, 0.8)',
+            borderColor: dataset.color || 'rgb(1, 118, 211)',
             borderWidth: 1,
           })),
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: title, font: { size: 16 } },
+            title: { display: true, text: title, font: { size: 18, weight: 'bold' } },
             legend: { display: true, position: 'top' },
           },
-          scales: { y: { beginAtZero: true } },
+          scales: {
+            y: { beginAtZero: true },
+            x: { grid: { display: false } }
+          },
         },
       };
     }
@@ -274,18 +329,18 @@
           datasets: [{
             data: data,
             backgroundColor: colors || [
-              'rgba(255, 99, 132, 0.8)',
-              'rgba(54, 162, 235, 0.8)',
-              'rgba(255, 206, 86, 0.8)',
-              'rgba(75, 192, 192, 0.8)',
-              'rgba(153, 102, 255, 0.8)',
+              'rgba(1, 118, 211, 0.8)',
+              'rgba(11, 92, 171, 0.8)',
+              'rgba(194, 57, 52, 0.8)',
+              'rgba(255, 186, 10, 0.8)',
+              'rgba(87, 163, 0, 0.8)',
             ],
           }],
         },
         options: {
           responsive: true,
           plugins: {
-            title: { display: true, text: title, font: { size: 16 } },
+            title: { display: true, text: title, font: { size: 18, weight: 'bold' } },
             legend: { display: true, position: 'right' },
           },
         },
@@ -424,23 +479,25 @@
       const statusDiv = document.getElementById('status');
       const chatElement = document.getElementById('chat');
       const configSection = document.getElementById('configSection');
+      const spinner = document.getElementById('spinner');
 
       const apiKey = apiKeyInput.value.trim();
       const dataUrl = dataUrlInput.value.trim();
 
       if (!apiKey) {
-        showStatus('error', '❌ Please enter your OpenAI API key');
+        showStatus('error', 'Please enter your OpenAI API key');
         return;
       }
 
       if (!dataUrl) {
-        showStatus('error', '❌ Please enter a data URL');
+        showStatus('error', 'Please enter a data URL');
         return;
       }
 
       try {
         loadButton.disabled = true;
-        showStatus('loading', '⏳ Loading data from ' + dataUrl + '...');
+        spinner.classList.add('active');
+        showStatus('info', 'Loading data from remote source...');
 
         const fileType = dataUrl.endsWith('.json') ? 'json' : 'csv';
         const data = await loadRemoteData(dataUrl, fileType);
@@ -449,7 +506,7 @@
           throw new Error('No data loaded from file');
         }
 
-        showStatus('loading', `✓ Data loaded! (${Array.isArray(data) ? data.length : 'N/A'} rows). Initializing chat...`);
+        showStatus('info', `Data loaded successfully! ${Array.isArray(data) ? data.length : 'N/A'} rows. Initializing AI...`);
 
         const systemPrompt = createDataContextPrompt(
           data,
@@ -457,19 +514,16 @@
           50
         );
 
-        // Function handler that returns proper format
         const functionHandler = async (functionsDetails) => {
           const results = [];
           for (const detail of functionsDetails) {
             const args = JSON.parse(detail.arguments);
             const chartUrl = generateChartUrl(detail.name, args);
-            // Return object with 'response' property as required by Deep Chat
             results.push({ response: chartUrl });
           }
           return results;
         };
 
-        // Helper to generate chart URL from function call
         function generateChartUrl(functionName, args) {
           let config;
 
@@ -504,41 +558,60 @@
           },
         };
 
-        // Intercept responses to render chart URLs as images
         chatElement.responseInterceptor = (response) => {
-          // Look for chart URLs in the response
           if (response.text && response.text.includes('quickchart.io')) {
             const urlMatch = response.text.match(/https:\/\/quickchart\.io\/chart\?[^\s)]+/);
             if (urlMatch) {
               const chartUrl = urlMatch[0];
-              response.html = `<div style="margin: 15px 0;">
-                <img src="${chartUrl}" alt="Chart" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);" />
+              response.html = `<div style="margin: 20px 0; text-align: center; padding: 20px; background: #fafaf9; border-radius: 8px;">
+                <img src="${chartUrl}" alt="Chart" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
               </div>`;
             }
           }
           return response;
         };
 
-        // Enable HTML rendering
         chatElement.htmlClassOverrides = { default: {} };
 
         chatElement.classList.add('visible');
-        configSection.style.display = 'none';
-        showStatus('success', `✅ Chat ready with chart generation! Ask me to visualize your data with charts.`);
+        configSection.classList.add('hidden');
+        spinner.classList.remove('active');
+        showStatus('success', 'Ready! Ask me to analyze or visualize your data.');
 
         console.log('Data loaded successfully with chart support!');
       } catch (error) {
         console.error('Error:', error);
-        showStatus('error', '❌ Failed to load data: ' + error.message);
+        showStatus('error', `Failed to load data: ${error.message}`);
         loadButton.disabled = false;
+        spinner.classList.remove('active');
       }
     }
 
     function showStatus(type, message) {
       const statusDiv = document.getElementById('status');
-      statusDiv.className = 'status ' + type;
-      statusDiv.textContent = message;
-      statusDiv.style.display = 'block';
+      const iconMap = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+      };
+
+      const classMap = {
+        success: 'slds-theme_success',
+        error: 'slds-theme_error',
+        warning: 'slds-theme_warning',
+        info: 'slds-theme_info'
+      };
+
+      statusDiv.innerHTML = `
+        <div class="slds-notify slds-notify_alert ${classMap[type]} status-alert" role="alert">
+          <span class="slds-assistive-text">${type}</span>
+          <span class="slds-icon_container slds-m-right_x-small">
+            <span>${iconMap[type]}</span>
+          </span>
+          <h2>${message}</h2>
+        </div>
+      `;
     }
 
     function resetDemo() {
@@ -548,8 +621,8 @@
       const loadButton = document.getElementById('loadButton');
 
       chatElement.classList.remove('visible');
-      configSection.style.display = 'block';
-      statusDiv.style.display = 'none';
+      configSection.classList.remove('hidden');
+      statusDiv.innerHTML = '';
       loadButton.disabled = false;
     }
 
@@ -567,102 +640,153 @@
   </script>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>📊 Chat with CSV Data + Charts</h1>
-      <p>Load data and visualize it with AI-generated charts</p>
-      <span class="badge new">NEW</span>
-      <span class="badge">Charts Enabled</span>
-    </div>
+  <div class="slds-scope">
+    <!-- Header -->
+    <header class="app-header">
+      <h1>
+        <span>📊 Data Analysis & Visualization</span>
+        <span class="slds-badge slds-badge_lightest">AI-Powered</span>
+        <span class="slds-badge slds-badge_lightest">Charts</span>
+      </h1>
+    </header>
 
-    <div class="content">
-      <div class="info-box">
-        <h3>🎨 Chart Generation Features</h3>
-        <ul>
-          <li>✨ <strong>Automatic chart generation</strong> - Just ask "show me a line chart" or "create a pie chart"</li>
-          <li>📈 <strong>Line charts</strong> for trends and time series</li>
-          <li>📊 <strong>Bar charts</strong> for comparisons</li>
-          <li>🥧 <strong>Pie charts</strong> for distributions</li>
-          <li>🤖 <strong>AI-powered</strong> - OpenAI determines the best visualization for your question</li>
-        </ul>
-      </div>
+    <!-- Main Container -->
+    <div class="main-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-content">
+          <!-- Features Card -->
+          <article class="slds-card">
+            <div class="slds-card__header slds-grid">
+              <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                <div class="slds-media__body">
+                  <h2 class="slds-card__header-title">
+                    <span>Key Features</span>
+                  </h2>
+                </div>
+              </header>
+            </div>
+            <div class="slds-card__body slds-card__body_inner">
+              <ul class="feature-list">
+                <li>Load CSV/JSON from Google Cloud Storage</li>
+                <li>AI-powered data analysis with GPT-4</li>
+                <li>Automatic chart generation</li>
+                <li>Line, bar, and pie charts</li>
+                <li>Natural language queries</li>
+                <li>Real-time visualizations</li>
+              </ul>
+            </div>
+          </article>
 
-      <div class="info-box">
-        <h3>💡 Example Questions to Ask</h3>
-        <ul>
-          <li>"Show me a line chart of sepal length over the samples"</li>
-          <li>"Create a bar chart comparing average values by species"</li>
-          <li>"Make a pie chart showing the distribution of species"</li>
-          <li>"Visualize the correlation between petal length and width"</li>
-          <li>"Plot a chart showing trends in the data"</li>
-        </ul>
-      </div>
+          <!-- Example Questions Card -->
+          <article class="slds-card">
+            <div class="slds-card__header slds-grid">
+              <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                <div class="slds-media__body">
+                  <h2 class="slds-card__header-title">
+                    <span>Example Questions</span>
+                  </h2>
+                </div>
+              </header>
+            </div>
+            <div class="slds-card__body slds-card__body_inner">
+              <ul class="feature-list" style="font-size: 0.875rem;">
+                <li>"Show me a line chart of sepal length"</li>
+                <li>"Create a bar chart comparing species"</li>
+                <li>"Make a pie chart of the distribution"</li>
+                <li>"What's the average petal width?"</li>
+                <li>"Visualize the correlation between variables"</li>
+              </ul>
+            </div>
+          </article>
 
-      <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
-        <h3 style="color: #856404;">⚠️ CORS Requirements</h3>
-        <p style="margin-bottom: 10px;">Test with these working URLs:</p>
-        <ul>
-          <li><code>https://raw.githubusercontent.com/plotly/datasets/master/iris.csv</code> - Iris dataset (150 rows)</li>
-          <li><code>https://raw.githubusercontent.com/plotly/datasets/master/tips.csv</code> - Restaurant tips data</li>
-        </ul>
-      </div>
+          <!-- Test URLs Card -->
+          <article class="slds-card">
+            <div class="slds-card__header slds-grid">
+              <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                <div class="slds-media__body">
+                  <h2 class="slds-card__header-title">
+                    <span>Test Data URLs</span>
+                  </h2>
+                </div>
+              </header>
+            </div>
+            <div class="slds-card__body slds-card__body_inner">
+              <ul class="url-list">
+                <li>
+                  <strong class="slds-text-body_small">Iris Dataset</strong>
+                  <code class="url-code">https://raw.githubusercontent.com/plotly/datasets/master/iris.csv</code>
+                </li>
+                <li>
+                  <strong class="slds-text-body_small">Tips Dataset</strong>
+                  <code class="url-code">https://raw.githubusercontent.com/plotly/datasets/master/tips.csv</code>
+                </li>
+              </ul>
+            </div>
+          </article>
+        </div>
 
-      <div id="configSection" class="config-section">
-        <h3>⚙️ Configuration</h3>
-        <label for="dataUrl" style="display: block; margin-bottom: 5px; font-weight: 600;">
-          Data URL (CSV or JSON):
-        </label>
-        <input
-          type="text"
-          id="dataUrl"
-          placeholder="https://raw.githubusercontent.com/plotly/datasets/master/iris.csv"
-          value="https://raw.githubusercontent.com/plotly/datasets/master/iris.csv"
-        />
-        <small>Enter the public URL of your CSV or JSON file</small>
+        <!-- Reset Button at bottom of sidebar -->
+        <div class="reset-section">
+          <button id="resetButton" class="slds-button slds-button_outline-brand slds-button_stretch">
+            🔄 Reset & Try Another Dataset
+          </button>
+        </div>
+      </aside>
 
-        <label for="apiKey" style="display: block; margin: 20px 0 5px 0; font-weight: 600;">
-          OpenAI API Key:
-        </label>
-        <input
-          type="password"
-          id="apiKey"
-          placeholder="sk-..."
-        />
-        <small>⚠️ Your API key is only used in your browser and never sent anywhere except OpenAI</small>
+      <!-- Chat Area -->
+      <main class="chat-area">
+        <!-- Loading Spinner -->
+        <div id="spinner" class="slds-spinner_container">
+          <div role="status" class="slds-spinner slds-spinner_medium">
+            <span class="slds-assistive-text">Loading</span>
+            <div class="slds-spinner__dot-a"></div>
+            <div class="slds-spinner__dot-b"></div>
+          </div>
+        </div>
 
-        <button id="loadButton" style="margin-top: 20px;">
-          🚀 Load Data & Start Chat with Charts
-        </button>
-      </div>
+        <!-- Configuration Section -->
+        <div id="configSection" class="slds-p-around_large">
+          <div class="slds-text-heading_medium slds-m-bottom_medium">Configuration</div>
 
-      <div id="status" class="status" style="display: none;"></div>
+          <div id="status"></div>
 
-      <div class="chat-container">
-        <deep-chat
-          id="chat"
-          style="height: 600px; width: 100%;"
-        ></deep-chat>
-      </div>
+          <div class="slds-form" role="list">
+            <div class="slds-form-element">
+              <label class="slds-form-element__label" for="dataUrl">
+                <abbr class="slds-required" title="required">* </abbr>Data URL (CSV or JSON)
+              </label>
+              <div class="slds-form-element__control">
+                <input type="text" id="dataUrl" class="slds-input"
+                  placeholder="https://raw.githubusercontent.com/plotly/datasets/master/iris.csv"
+                  value="https://raw.githubusercontent.com/plotly/datasets/master/iris.csv" />
+              </div>
+              <div class="slds-form-element__help">Enter the public URL of your CSV or JSON file</div>
+            </div>
 
-      <div style="text-align: center; margin-top: 20px;">
-        <button
-          id="resetButton"
-          style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;"
-        >
-          🔄 Reset & Try Another Dataset
-        </button>
-      </div>
-    </div>
+            <div class="slds-form-element">
+              <label class="slds-form-element__label" for="apiKey">
+                <abbr class="slds-required" title="required">* </abbr>OpenAI API Key
+              </label>
+              <div class="slds-form-element__control">
+                <input type="password" id="apiKey" class="slds-input" placeholder="sk-..." />
+              </div>
+              <div class="slds-form-element__help">Your API key stays in your browser and is never stored</div>
+            </div>
 
-    <div class="footer">
-      <p>
-        Built with <a href="https://deepchat.dev" target="_blank">Deep Chat</a>,
-        <a href="https://openai.com" target="_blank">OpenAI API</a>, and
-        <a href="https://quickchart.io" target="_blank">QuickChart</a>
-      </p>
-      <p style="margin-top: 10px;">
-        <a href="../../docs/directConnection/OpenAI/OpenAIWithData" target="_blank">📖 View Documentation</a>
-      </p>
+            <div class="slds-m-top_large">
+              <button id="loadButton" class="slds-button slds-button_brand slds-button_stretch">
+                🚀 Load Data & Start Analysis
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div id="chat-wrapper">
+          <deep-chat id="chat" style="width: 100%; height: 100%;"></deep-chat>
+        </div>
+      </main>
     </div>
   </div>
 
