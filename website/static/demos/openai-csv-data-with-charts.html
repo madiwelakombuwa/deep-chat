@@ -435,7 +435,9 @@
       }
 
       const chartUrl = generateQuickChartUrl(config);
-      return `![${args.title}](${chartUrl})`;
+
+      // Return as plain text with the chart URL for Deep Chat to handle
+      return `Chart created: ${args.title}. View at: ${chartUrl}`;
     }
 
     // Initialize chat
@@ -479,6 +481,17 @@
           50
         );
 
+        // Function handler that returns proper format
+        const functionHandler = async (functionsDetails) => {
+          const results = [];
+          for (const detail of functionsDetails) {
+            const args = JSON.parse(detail.arguments);
+            const result = handleChartFunction(detail.name, args);
+            results.push(result);
+          }
+          return results;
+        };
+
         chatElement.directConnection = {
           openAI: {
             key: apiKey,
@@ -488,18 +501,28 @@
               max_tokens: 2000,
               temperature: 0.7,
               tools: chartFunctions,
-              function_handler: async (functionsDetails) => {
-                const results = [];
-                for (const detail of functionsDetails) {
-                  const args = JSON.parse(detail.arguments);
-                  const result = handleChartFunction(detail.name, args);
-                  results.push(result);
-                }
-                return results;
-              },
+              function_handler: functionHandler,
             },
           },
         };
+
+        // Intercept responses to render chart URLs as images
+        chatElement.responseInterceptor = (response) => {
+          // Look for chart URLs in the response
+          if (response.text && response.text.includes('quickchart.io')) {
+            const urlMatch = response.text.match(/https:\/\/quickchart\.io\/chart\?[^\s)]+/);
+            if (urlMatch) {
+              const chartUrl = urlMatch[0];
+              response.html = `<div style="margin: 15px 0;">
+                <img src="${chartUrl}" alt="Chart" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);" />
+              </div>`;
+            }
+          }
+          return response;
+        };
+
+        // Enable HTML rendering
+        chatElement.htmlClassOverrides = { default: {} };
 
         chatElement.classList.add('visible');
         configSection.style.display = 'none';
