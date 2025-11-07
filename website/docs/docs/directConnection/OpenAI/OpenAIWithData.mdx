@@ -393,9 +393,120 @@ const systemPrompt = createDataContextPrompt(
 
 ## Full Working Example
 
-<BrowserOnly>
-  {() => {
-    const DataLoaderExample = require('@site/src/components/examples/DataLoaderExample').default;
-    return <DataLoaderExample />;
-  }}
-</BrowserOnly>
+You can try this feature by creating a simple HTML page:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat with CSV Data</title>
+  <script type="module">
+    // Data loader utilities
+    async function fetchRemoteData(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      return await response.text();
+    }
+
+    function parseCSV(csvText, delimiter = ',') {
+      const lines = csvText.trim().split('\n');
+      if (lines.length === 0) return [];
+
+      const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+        if (values.length === headers.length) {
+          const row = {};
+          headers.forEach((header, index) => { row[header] = values[index]; });
+          data.push(row);
+        }
+      }
+      return data;
+    }
+
+    async function loadRemoteData(url, type = 'csv') {
+      const rawData = await fetchRemoteData(url);
+      if (type === 'csv') return parseCSV(rawData);
+      if (type === 'json') return JSON.parse(rawData);
+      throw new Error(`Unsupported type: ${type}`);
+    }
+
+    function createDataContextPrompt(data, basePrompt = '', maxRows = 50) {
+      const limitedData = data.slice(0, maxRows);
+      const headers = Object.keys(limitedData[0]);
+
+      let formatted = `${basePrompt}\n\nYou have access to the following dataset:\n\n`;
+      formatted += `Data Summary (${data.length} total rows, showing ${limitedData.length}):\n`;
+      formatted += `Columns: ${headers.join(', ')}\n\nSample Data:\n`;
+
+      limitedData.forEach((row, index) => {
+        formatted += `Row ${index + 1}: ${JSON.stringify(row)}\n`;
+      });
+
+      return formatted;
+    }
+
+    // Initialize chat when page loads
+    window.addEventListener('load', async () => {
+      try {
+        // Load your CSV data
+        const data = await loadRemoteData(
+          'https://storage.googleapis.com/gdsshopify/MonteCarlo.csv',
+          'csv'
+        );
+
+        // Create system prompt with data
+        const systemPrompt = createDataContextPrompt(
+          data,
+          'You are a helpful assistant that analyzes data.',
+          50
+        );
+
+        // Configure Deep Chat
+        const chatElement = document.getElementById('chat');
+        chatElement.directConnection = {
+          openAI: {
+            key: 'YOUR_OPENAI_API_KEY_HERE', // Replace with your key
+            chat: {
+              system_prompt: systemPrompt,
+              model: 'gpt-4o',
+              max_tokens: 2000,
+            },
+          },
+        };
+
+        console.log('Data loaded successfully!', data.length, 'rows');
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to load data: ' + error.message);
+      }
+    });
+  </script>
+</head>
+<body>
+  <h1>Chat with Your CSV Data</h1>
+  <deep-chat
+    id="chat"
+    style="height: 600px; border: 1px solid #ccc; border-radius: 8px;"
+  ></deep-chat>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/deep-chat"></script>
+</body>
+</html>
+```
+
+### Try It Yourself
+
+1. Save the code above as `index.html`
+2. Replace `YOUR_OPENAI_API_KEY_HERE` with your OpenAI API key
+3. Optionally change the CSV URL to your own data
+4. Open the file in a browser
+5. Start asking questions about your data!
+
+Example questions to try:
+- "What columns are in this dataset?"
+- "How many rows of data do we have?"
+- "Show me the first few rows"
+- "What patterns can you see in the data?"
