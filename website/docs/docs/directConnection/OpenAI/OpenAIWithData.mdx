@@ -1,0 +1,401 @@
+---
+sidebar_position: 16
+---
+
+# OpenAI with External Data
+
+Learn how to load data from CSV or JSON files (including Google Cloud Storage) and use it with OpenAI's chat API.
+
+## Overview
+
+This feature allows you to:
+- Load data from CSV or JSON files stored on Google Cloud Storage or any public URL
+- Automatically include that data as context for OpenAI conversations
+- Enable AI to answer questions about your data
+
+## Example: Loading CSV Data
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import BrowserOnly from '@docusaurus/BrowserOnly';
+
+<Tabs>
+<TabItem value="html" label="HTML">
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="module">
+      import { loadRemoteData, createDataContextPrompt } from './utils/dataLoader.js';
+
+      async function setupChat() {
+        try {
+          // Load data from Google Cloud Storage
+          const data = await loadRemoteData(
+            'https://storage.googleapis.com/your-bucket/yourfile.csv',
+            'csv'
+          );
+
+          // Create system prompt with data context
+          const systemPrompt = createDataContextPrompt(
+            data,
+            'You are a helpful assistant that can analyze and answer questions about the provided dataset.',
+            50 // Include first 50 rows as context
+          );
+
+          // Get chat component
+          const chatElement = document.getElementById('chat');
+
+          // Configure with OpenAI and data context
+          chatElement.directConnection = {
+            openAI: {
+              key: 'YOUR_API_KEY',
+              chat: {
+                system_prompt: systemPrompt,
+                model: 'gpt-4o',
+                max_tokens: 2000,
+              },
+            },
+          };
+        } catch (error) {
+          console.error('Error loading data:', error);
+        }
+      }
+
+      // Load data when page loads
+      window.addEventListener('load', setupChat);
+    </script>
+  </head>
+  <body>
+    <deep-chat id="chat" style="height: 500px"></deep-chat>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/deep-chat"></script>
+  </body>
+</html>
+```
+
+</TabItem>
+<TabItem value="react" label="React">
+
+```jsx
+import React, { useEffect, useState } from 'react';
+import { DeepChat } from 'deep-chat-react';
+import { loadRemoteData, createDataContextPrompt } from './utils/dataLoader';
+
+export default function ChatWithData() {
+  const [directConnection, setDirectConnection] = useState(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // Load CSV data from Google Cloud Storage
+        const data = await loadRemoteData(
+          'https://storage.googleapis.com/gdsshopify/MonteCarlo.csv',
+          'csv'
+        );
+
+        // Create system prompt with data context
+        const systemPrompt = createDataContextPrompt(
+          data,
+          'You are a helpful assistant that can analyze and answer questions about the provided dataset.',
+          50
+        );
+
+        // Set up OpenAI connection with data context
+        setDirectConnection({
+          openAI: {
+            key: process.env.REACT_APP_OPENAI_KEY,
+            chat: {
+              system_prompt: systemPrompt,
+              model: 'gpt-4o',
+              max_tokens: 2000,
+            },
+          },
+        });
+      } catch (error) {
+        console.error('Error loading data:', error);
+        // Handle error - maybe show a message to user
+      }
+    }
+
+    loadData();
+  }, []);
+
+  if (!directConnection) {
+    return <div>Loading data...</div>;
+  }
+
+  return (
+    <DeepChat
+      directConnection={directConnection}
+      style={{ height: '500px' }}
+    />
+  );
+}
+```
+
+</TabItem>
+<TabItem value="vue" label="Vue">
+
+```vue
+<template>
+  <div>
+    <div v-if="loading">Loading data...</div>
+    <deep-chat
+      v-else
+      :directConnection="directConnection"
+      style="height: 500px"
+    />
+  </div>
+</template>
+
+<script>
+import { loadRemoteData, createDataContextPrompt } from './utils/dataLoader';
+
+export default {
+  name: 'ChatWithData',
+  data() {
+    return {
+      loading: true,
+      directConnection: null,
+    };
+  },
+  async mounted() {
+    try {
+      // Load CSV data
+      const data = await loadRemoteData(
+        'https://storage.googleapis.com/gdsshopify/MonteCarlo.csv',
+        'csv'
+      );
+
+      // Create system prompt with data context
+      const systemPrompt = createDataContextPrompt(
+        data,
+        'You are a helpful assistant that can analyze and answer questions about the provided dataset.',
+        50
+      );
+
+      // Configure OpenAI connection
+      this.directConnection = {
+        openAI: {
+          key: process.env.VUE_APP_OPENAI_KEY,
+          chat: {
+            system_prompt: systemPrompt,
+            model: 'gpt-4o',
+            max_tokens: 2000,
+          },
+        },
+      };
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      this.loading = false;
+    }
+  },
+};
+</script>
+```
+
+</TabItem>
+</Tabs>
+
+## Loading JSON Data
+
+```javascript
+import { loadRemoteData, createDataContextPrompt } from './utils/dataLoader';
+
+// Load JSON data
+const data = await loadRemoteData(
+  'https://storage.googleapis.com/your-bucket/data.json',
+  'json'
+);
+
+// Create context prompt
+const systemPrompt = createDataContextPrompt(
+  data,
+  'You are an assistant that helps analyze JSON data.',
+  100
+);
+```
+
+## API Reference
+
+### `loadRemoteData(url, type)`
+
+Loads and parses data from a remote URL.
+
+**Parameters:**
+- `url` (string): The URL of the file to load
+- `type` (string): Either 'csv' or 'json'
+
+**Returns:** `Promise<Array<Object>|Object>` - The parsed data
+
+### `createDataContextPrompt(data, basePrompt, maxRows)`
+
+Creates a system prompt that includes data context.
+
+**Parameters:**
+- `data` (Array|Object): The data to include
+- `basePrompt` (string): Base system prompt text
+- `maxRows` (number): Maximum rows to include (default: 50)
+
+**Returns:** `string` - Complete system prompt with data context
+
+### `formatDataForAI(data, maxRows)`
+
+Formats data array into text suitable for AI context.
+
+**Parameters:**
+- `data` (Array): Data array to format
+- `maxRows` (number): Maximum rows to include (default: 50)
+
+**Returns:** `string` - Formatted text representation
+
+## Best Practices
+
+### 1. Limit Data Size
+
+Only include relevant data in the context. Large datasets can exceed token limits:
+
+```javascript
+// Good: Limit to 50 rows
+const systemPrompt = createDataContextPrompt(data, basePrompt, 50);
+
+// Bad: Including thousands of rows
+const systemPrompt = createDataContextPrompt(data, basePrompt, 5000);
+```
+
+### 2. Handle Errors Gracefully
+
+Always handle potential errors when loading remote data:
+
+```javascript
+try {
+  const data = await loadRemoteData(url, 'csv');
+  // Use data...
+} catch (error) {
+  console.error('Failed to load data:', error);
+  // Show user-friendly error message
+}
+```
+
+### 3. Cache Data
+
+If the data doesn't change frequently, cache it to avoid repeated fetches:
+
+```javascript
+let cachedData = null;
+
+async function getData() {
+  if (!cachedData) {
+    cachedData = await loadRemoteData(url, 'csv');
+  }
+  return cachedData;
+}
+```
+
+### 4. CORS Considerations
+
+Ensure your data files are accessible from your domain. For Google Cloud Storage:
+
+1. Make the bucket or file public
+2. Set appropriate CORS configuration
+
+Example GCS CORS configuration:
+```json
+[
+  {
+    "origin": ["*"],
+    "method": ["GET"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]
+```
+
+### 5. Secure API Keys
+
+Never expose your OpenAI API key in client-side code for production:
+
+```javascript
+// Development only
+directConnection: {
+  openAI: {
+    key: 'YOUR_API_KEY', // Don't do this in production!
+  }
+}
+
+// Production: Use environment variables and a backend proxy
+directConnection: {
+  openAI: {
+    key: process.env.OPENAI_KEY,
+  }
+}
+```
+
+## Example Questions Users Can Ask
+
+Once your data is loaded, users can ask questions like:
+
+- "What are the columns in this dataset?"
+- "What's the average value of [column name]?"
+- "Show me the top 5 rows"
+- "Are there any trends in the data?"
+- "What's the maximum/minimum value for [column name]?"
+- "Filter data where [column] equals [value]"
+
+## Advanced: Custom Data Processing
+
+You can preprocess the data before passing it to OpenAI:
+
+```javascript
+import { loadRemoteData, createDataContextPrompt } from './utils/dataLoader';
+
+// Load data
+const rawData = await loadRemoteData(url, 'csv');
+
+// Filter or transform data
+const processedData = rawData
+  .filter(row => row.category === 'important')
+  .map(row => ({
+    ...row,
+    processed: true,
+    timestamp: new Date(row.date).toISOString(),
+  }));
+
+// Create context with processed data
+const systemPrompt = createDataContextPrompt(
+  processedData,
+  'You are analyzing filtered and processed data.',
+  50
+);
+```
+
+## Troubleshooting
+
+### Data Not Loading
+
+- Check the URL is correct and publicly accessible
+- Verify CORS headers are set correctly
+- Check browser console for errors
+
+### Token Limit Exceeded
+
+- Reduce the `maxRows` parameter
+- Summarize data before passing to OpenAI
+- Consider using pagination or filtering
+
+### CSV Parsing Issues
+
+- Ensure CSV uses standard formatting
+- Check delimiter (default is comma)
+- Verify no embedded line breaks in cells
+
+## Full Working Example
+
+<BrowserOnly>
+  {() => {
+    const DataLoaderExample = require('@site/src/components/examples/DataLoaderExample').default;
+    return <DataLoaderExample />;
+  }}
+</BrowserOnly>
