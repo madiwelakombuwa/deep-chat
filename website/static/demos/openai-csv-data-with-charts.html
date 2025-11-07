@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat with CSV Data + Charts - Deep Chat + OpenAI Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .header p {
+      font-size: 1.1em;
+      opacity: 0.95;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .info-box {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin-bottom: 25px;
+      border-radius: 4px;
+    }
+
+    .info-box h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+    }
+
+    .info-box ul {
+      margin-left: 20px;
+      line-height: 1.8;
+    }
+
+    .info-box li {
+      margin-bottom: 5px;
+    }
+
+    .config-section {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+
+    .config-section h3 {
+      color: #856404;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .config-section input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ffc107;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 10px;
+    }
+
+    .config-section button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 100%;
+    }
+
+    .config-section button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .config-section button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .config-section small {
+      color: #856404;
+      display: block;
+      margin-top: 5px;
+      font-size: 13px;
+    }
+
+    .chat-container {
+      margin-top: 25px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .status {
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .status.loading {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      background: #f8f9fa;
+      color: #6c757d;
+      font-size: 14px;
+    }
+
+    .footer a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    #chat {
+      display: none;
+    }
+
+    #chat.visible {
+      display: block;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .badge.new {
+      background: #28a745;
+    }
+
+    code {
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+  </style>
+  <script type="module">
+    // Chart generation functions
+    function generateQuickChartUrl(config) {
+      const encodedConfig = encodeURIComponent(JSON.stringify(config));
+      return `https://quickchart.io/chart?c=${encodedConfig}&width=600&height=400`;
+    }
+
+    function createLineChart({ title, labels, datasets }) {
+      return {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: datasets.map(dataset => ({
+            label: dataset.label,
+            data: dataset.data,
+            borderColor: dataset.color || 'rgb(75, 192, 192)',
+            backgroundColor: dataset.color || 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1,
+          })),
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: title, font: { size: 16 } },
+            legend: { display: true, position: 'top' },
+          },
+          scales: { y: { beginAtZero: true } },
+        },
+      };
+    }
+
+    function createBarChart({ title, labels, datasets }) {
+      return {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: datasets.map(dataset => ({
+            label: dataset.label,
+            data: dataset.data,
+            backgroundColor: dataset.color || 'rgba(54, 162, 235, 0.5)',
+            borderColor: dataset.color || 'rgb(54, 162, 235)',
+            borderWidth: 1,
+          })),
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: title, font: { size: 16 } },
+            legend: { display: true, position: 'top' },
+          },
+          scales: { y: { beginAtZero: true } },
+        },
+      };
+    }
+
+    function createPieChart({ title, labels, data, colors }) {
+      return {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: colors || [
+              'rgba(255, 99, 132, 0.8)',
+              'rgba(54, 162, 235, 0.8)',
+              'rgba(255, 206, 86, 0.8)',
+              'rgba(75, 192, 192, 0.8)',
+              'rgba(153, 102, 255, 0.8)',
+            ],
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: title, font: { size: 16 } },
+            legend: { display: true, position: 'right' },
+          },
+        },
+      };
+    }
+
+    // OpenAI function definitions
+    const chartFunctions = [
+      {
+        type: 'function',
+        function: {
+          name: 'create_line_chart',
+          description: 'Creates a line chart to visualize trends over time or ordered categories',
+          parameters: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'The title of the chart' },
+              labels: { type: 'array', items: { type: 'string' }, description: 'X-axis labels' },
+              datasets: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    label: { type: 'string' },
+                    data: { type: 'array', items: { type: 'number' } },
+                    color: { type: 'string' },
+                  },
+                  required: ['label', 'data'],
+                },
+              },
+            },
+            required: ['title', 'labels', 'datasets'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'create_bar_chart',
+          description: 'Creates a bar chart to compare values across categories',
+          parameters: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              labels: { type: 'array', items: { type: 'string' } },
+              datasets: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    label: { type: 'string' },
+                    data: { type: 'array', items: { type: 'number' } },
+                    color: { type: 'string' },
+                  },
+                  required: ['label', 'data'],
+                },
+              },
+            },
+            required: ['title', 'labels', 'datasets'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'create_pie_chart',
+          description: 'Creates a pie chart to show proportions or distribution',
+          parameters: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              labels: { type: 'array', items: { type: 'string' } },
+              data: { type: 'array', items: { type: 'number' } },
+              colors: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['title', 'labels', 'data'],
+          },
+        },
+      },
+    ];
+
+    // Data loader utilities
+    async function fetchRemoteData(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      return await response.text();
+    }
+
+    function parseCSV(csvText, delimiter = ',') {
+      const lines = csvText.trim().split('\n');
+      if (lines.length === 0) return [];
+
+      const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+        if (values.length === headers.length) {
+          const row = {};
+          headers.forEach((header, index) => { row[header] = values[index]; });
+          data.push(row);
+        }
+      }
+      return data;
+    }
+
+    async function loadRemoteData(url, type = 'csv') {
+      const rawData = await fetchRemoteData(url);
+      if (type === 'csv') return parseCSV(rawData);
+      if (type === 'json') return JSON.parse(rawData);
+      throw new Error(`Unsupported type: ${type}`);
+    }
+
+    function createDataContextPrompt(data, basePrompt = '', maxRows = 50) {
+      const limitedData = data.slice(0, maxRows);
+      const headers = Object.keys(limitedData[0]);
+
+      let formatted = `${basePrompt}\n\nYou have access to the following dataset:\n\n`;
+      formatted += `Data Summary (${data.length} total rows, showing ${limitedData.length}):\n`;
+      formatted += `Columns: ${headers.join(', ')}\n\nSample Data:\n`;
+
+      limitedData.forEach((row, index) => {
+        formatted += `Row ${index + 1}: ${JSON.stringify(row)}\n`;
+      });
+
+      formatted += `\n\nIMPORTANT: When the user asks to visualize data or create charts, use the appropriate chart creation functions (create_line_chart, create_bar_chart, or create_pie_chart) to generate visual representations.`;
+
+      return formatted;
+    }
+
+    // Function handler
+    function handleChartFunction(functionName, args) {
+      let config;
+
+      switch (functionName) {
+        case 'create_line_chart':
+          config = createLineChart(args);
+          break;
+        case 'create_bar_chart':
+          config = createBarChart(args);
+          break;
+        case 'create_pie_chart':
+          config = createPieChart(args);
+          break;
+        default:
+          return `Error: Unknown function ${functionName}`;
+      }
+
+      const chartUrl = generateQuickChartUrl(config);
+      return `![${args.title}](${chartUrl})`;
+    }
+
+    // Initialize chat
+    async function initializeChat() {
+      const apiKeyInput = document.getElementById('apiKey');
+      const dataUrlInput = document.getElementById('dataUrl');
+      const loadButton = document.getElementById('loadButton');
+      const statusDiv = document.getElementById('status');
+      const chatElement = document.getElementById('chat');
+      const configSection = document.getElementById('configSection');
+
+      const apiKey = apiKeyInput.value.trim();
+      const dataUrl = dataUrlInput.value.trim();
+
+      if (!apiKey) {
+        showStatus('error', '❌ Please enter your OpenAI API key');
+        return;
+      }
+
+      if (!dataUrl) {
+        showStatus('error', '❌ Please enter a data URL');
+        return;
+      }
+
+      try {
+        loadButton.disabled = true;
+        showStatus('loading', '⏳ Loading data from ' + dataUrl + '...');
+
+        const fileType = dataUrl.endsWith('.json') ? 'json' : 'csv';
+        const data = await loadRemoteData(dataUrl, fileType);
+
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+          throw new Error('No data loaded from file');
+        }
+
+        showStatus('loading', `✓ Data loaded! (${Array.isArray(data) ? data.length : 'N/A'} rows). Initializing chat...`);
+
+        const systemPrompt = createDataContextPrompt(
+          data,
+          'You are a helpful data analyst assistant. When users ask for visualizations or charts, use the appropriate chart creation functions to generate them.',
+          50
+        );
+
+        chatElement.directConnection = {
+          openAI: {
+            key: apiKey,
+            chat: {
+              system_prompt: systemPrompt,
+              model: 'gpt-4o',
+              max_tokens: 2000,
+              temperature: 0.7,
+              tools: chartFunctions,
+              function_handler: async (functionsDetails) => {
+                const results = [];
+                for (const detail of functionsDetails) {
+                  const args = JSON.parse(detail.arguments);
+                  const result = handleChartFunction(detail.name, args);
+                  results.push(result);
+                }
+                return results;
+              },
+            },
+          },
+        };
+
+        chatElement.classList.add('visible');
+        configSection.style.display = 'none';
+        showStatus('success', `✅ Chat ready with chart generation! Ask me to visualize your data with charts.`);
+
+        console.log('Data loaded successfully with chart support!');
+      } catch (error) {
+        console.error('Error:', error);
+        showStatus('error', '❌ Failed to load data: ' + error.message);
+        loadButton.disabled = false;
+      }
+    }
+
+    function showStatus(type, message) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = 'status ' + type;
+      statusDiv.textContent = message;
+      statusDiv.style.display = 'block';
+    }
+
+    function resetDemo() {
+      const chatElement = document.getElementById('chat');
+      const configSection = document.getElementById('configSection');
+      const statusDiv = document.getElementById('status');
+      const loadButton = document.getElementById('loadButton');
+
+      chatElement.classList.remove('visible');
+      configSection.style.display = 'block';
+      statusDiv.style.display = 'none';
+      loadButton.disabled = false;
+    }
+
+    window.addEventListener('load', () => {
+      document.getElementById('loadButton').addEventListener('click', initializeChat);
+      document.getElementById('resetButton').addEventListener('click', resetDemo);
+
+      document.getElementById('apiKey').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') initializeChat();
+      });
+      document.getElementById('dataUrl').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') initializeChat();
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Chat with CSV Data + Charts</h1>
+      <p>Load data and visualize it with AI-generated charts</p>
+      <span class="badge new">NEW</span>
+      <span class="badge">Charts Enabled</span>
+    </div>
+
+    <div class="content">
+      <div class="info-box">
+        <h3>🎨 Chart Generation Features</h3>
+        <ul>
+          <li>✨ <strong>Automatic chart generation</strong> - Just ask "show me a line chart" or "create a pie chart"</li>
+          <li>📈 <strong>Line charts</strong> for trends and time series</li>
+          <li>📊 <strong>Bar charts</strong> for comparisons</li>
+          <li>🥧 <strong>Pie charts</strong> for distributions</li>
+          <li>🤖 <strong>AI-powered</strong> - OpenAI determines the best visualization for your question</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <h3>💡 Example Questions to Ask</h3>
+        <ul>
+          <li>"Show me a line chart of sepal length over the samples"</li>
+          <li>"Create a bar chart comparing average values by species"</li>
+          <li>"Make a pie chart showing the distribution of species"</li>
+          <li>"Visualize the correlation between petal length and width"</li>
+          <li>"Plot a chart showing trends in the data"</li>
+        </ul>
+      </div>
+
+      <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+        <h3 style="color: #856404;">⚠️ CORS Requirements</h3>
+        <p style="margin-bottom: 10px;">Test with these working URLs:</p>
+        <ul>
+          <li><code>https://raw.githubusercontent.com/plotly/datasets/master/iris.csv</code> - Iris dataset (150 rows)</li>
+          <li><code>https://raw.githubusercontent.com/plotly/datasets/master/tips.csv</code> - Restaurant tips data</li>
+        </ul>
+      </div>
+
+      <div id="configSection" class="config-section">
+        <h3>⚙️ Configuration</h3>
+        <label for="dataUrl" style="display: block; margin-bottom: 5px; font-weight: 600;">
+          Data URL (CSV or JSON):
+        </label>
+        <input
+          type="text"
+          id="dataUrl"
+          placeholder="https://raw.githubusercontent.com/plotly/datasets/master/iris.csv"
+          value="https://raw.githubusercontent.com/plotly/datasets/master/iris.csv"
+        />
+        <small>Enter the public URL of your CSV or JSON file</small>
+
+        <label for="apiKey" style="display: block; margin: 20px 0 5px 0; font-weight: 600;">
+          OpenAI API Key:
+        </label>
+        <input
+          type="password"
+          id="apiKey"
+          placeholder="sk-..."
+        />
+        <small>⚠️ Your API key is only used in your browser and never sent anywhere except OpenAI</small>
+
+        <button id="loadButton" style="margin-top: 20px;">
+          🚀 Load Data & Start Chat with Charts
+        </button>
+      </div>
+
+      <div id="status" class="status" style="display: none;"></div>
+
+      <div class="chat-container">
+        <deep-chat
+          id="chat"
+          style="height: 600px; width: 100%;"
+        ></deep-chat>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <button
+          id="resetButton"
+          style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;"
+        >
+          🔄 Reset & Try Another Dataset
+        </button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>
+        Built with <a href="https://deepchat.dev" target="_blank">Deep Chat</a>,
+        <a href="https://openai.com" target="_blank">OpenAI API</a>, and
+        <a href="https://quickchart.io" target="_blank">QuickChart</a>
+      </p>
+      <p style="margin-top: 10px;">
+        <a href="../../docs/directConnection/OpenAI/OpenAIWithData" target="_blank">📖 View Documentation</a>
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/deep-chat"></script>
+</body>
+</html>
