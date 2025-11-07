@@ -416,30 +416,6 @@
       return formatted;
     }
 
-    // Function handler
-    function handleChartFunction(functionName, args) {
-      let config;
-
-      switch (functionName) {
-        case 'create_line_chart':
-          config = createLineChart(args);
-          break;
-        case 'create_bar_chart':
-          config = createBarChart(args);
-          break;
-        case 'create_pie_chart':
-          config = createPieChart(args);
-          break;
-        default:
-          return `Error: Unknown function ${functionName}`;
-      }
-
-      const chartUrl = generateQuickChartUrl(config);
-
-      // Return as plain text with the chart URL for Deep Chat to handle
-      return `Chart created: ${args.title}. View at: ${chartUrl}`;
-    }
-
     // Initialize chat
     async function initializeChat() {
       const apiKeyInput = document.getElementById('apiKey');
@@ -486,11 +462,33 @@
           const results = [];
           for (const detail of functionsDetails) {
             const args = JSON.parse(detail.arguments);
-            const result = handleChartFunction(detail.name, args);
-            results.push(result);
+            const chartUrl = generateChartUrl(detail.name, args);
+            // Return object with text property as required by Deep Chat
+            results.push({ text: chartUrl });
           }
           return results;
         };
+
+        // Helper to generate chart URL from function call
+        function generateChartUrl(functionName, args) {
+          let config;
+
+          switch (functionName) {
+            case 'create_line_chart':
+              config = createLineChart(args);
+              break;
+            case 'create_bar_chart':
+              config = createBarChart(args);
+              break;
+            case 'create_pie_chart':
+              config = createPieChart(args);
+              break;
+            default:
+              return `Error: Unknown function ${functionName}`;
+          }
+
+          return generateQuickChartUrl(config);
+        }
 
         chatElement.directConnection = {
           openAI: {
