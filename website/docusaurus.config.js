@@ -7,15 +7,15 @@ import {themes as prismThemes} from 'prism-react-renderer';
 const config = {
   title: 'Deep Chat',
   tagline: 'Customizable chat component for AI APIs',
-  url: 'https://deepchat.dev',
-  baseUrl: '/',
+  url: 'https://madiwelakombuwa.github.io',
+  baseUrl: '/deep-chat/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.png',
   onBrokenAnchors: 'ignore',
 
   // GitHub pages deployment config
-  organizationName: 'OvidijusParsiunas', // GitHub org/user name
+  organizationName: 'madiwelakombuwa', // GitHub org/user name
   projectName: 'deep-chat', // repo name
 
   // Even if you don't use internalization, you can use this field to set useful
