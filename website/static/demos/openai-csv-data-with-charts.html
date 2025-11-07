@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat with CSV Data - Deep Chat + OpenAI Demo</title>
+  <title>Chat with CSV Data + Charts - Deep Chat + OpenAI Demo</title>
   <style>
     * {
       margin: 0;
@@ -199,8 +199,174 @@
       font-weight: 600;
       margin-left: 10px;
     }
+
+    .badge.new {
+      background: #28a745;
+    }
+
+    code {
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
   </style>
   <script type="module">
+    // Chart generation functions
+    function generateQuickChartUrl(config) {
+      const encodedConfig = encodeURIComponent(JSON.stringify(config));
+      return `https://quickchart.io/chart?c=${encodedConfig}&width=600&height=400`;
+    }
+
+    function createLineChart({ title, labels, datasets }) {
+      return {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: datasets.map(dataset => ({
+            label: dataset.label,
+            data: dataset.data,
+            borderColor: dataset.color || 'rgb(75, 192, 192)',
+            backgroundColor: dataset.color || 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1,
+          })),
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: title, font: { size: 16 } },
+            legend: { display: true, position: 'top' },
+          },
+          scales: { y: { beginAtZero: true } },
+        },
+      };
+    }
+
+    function createBarChart({ title, labels, datasets }) {
+      return {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: datasets.map(dataset => ({
+            label: dataset.label,
+            data: dataset.data,
+            backgroundColor: dataset.color || 'rgba(54, 162, 235, 0.5)',
+            borderColor: dataset.color || 'rgb(54, 162, 235)',
+            borderWidth: 1,
+          })),
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: title, font: { size: 16 } },
+            legend: { display: true, position: 'top' },
+          },
+          scales: { y: { beginAtZero: true } },
+        },
+      };
+    }
+
+    function createPieChart({ title, labels, data, colors }) {
+      return {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: colors || [
+              'rgba(255, 99, 132, 0.8)',
+              'rgba(54, 162, 235, 0.8)',
+              'rgba(255, 206, 86, 0.8)',
+              'rgba(75, 192, 192, 0.8)',
+              'rgba(153, 102, 255, 0.8)',
+            ],
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: title, font: { size: 16 } },
+            legend: { display: true, position: 'right' },
+          },
+        },
+      };
+    }
+
+    // OpenAI function definitions
+    const chartFunctions = [
+      {
+        type: 'function',
+        function: {
+          name: 'create_line_chart',
+          description: 'Creates a line chart to visualize trends over time or ordered categories',
+          parameters: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'The title of the chart' },
+              labels: { type: 'array', items: { type: 'string' }, description: 'X-axis labels' },
+              datasets: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    label: { type: 'string' },
+                    data: { type: 'array', items: { type: 'number' } },
+                    color: { type: 'string' },
+                  },
+                  required: ['label', 'data'],
+                },
+              },
+            },
+            required: ['title', 'labels', 'datasets'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'create_bar_chart',
+          description: 'Creates a bar chart to compare values across categories',
+          parameters: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              labels: { type: 'array', items: { type: 'string' } },
+              datasets: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    label: { type: 'string' },
+                    data: { type: 'array', items: { type: 'number' } },
+                    color: { type: 'string' },
+                  },
+                  required: ['label', 'data'],
+                },
+              },
+            },
+            required: ['title', 'labels', 'datasets'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'create_pie_chart',
+          description: 'Creates a pie chart to show proportions or distribution',
+          parameters: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              labels: { type: 'array', items: { type: 'string' } },
+              data: { type: 'array', items: { type: 'number' } },
+              colors: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['title', 'labels', 'data'],
+          },
+        },
+      },
+    ];
+
     // Data loader utilities
     async function fetchRemoteData(url) {
       const response = await fetch(url);
@@ -245,10 +411,34 @@
         formatted += `Row ${index + 1}: ${JSON.stringify(row)}\n`;
       });
 
+      formatted += `\n\nIMPORTANT: When the user asks to visualize data or create charts, use the appropriate chart creation functions (create_line_chart, create_bar_chart, or create_pie_chart) to generate visual representations.`;
+
       return formatted;
     }
 
-    // Initialize function
+    // Function handler
+    function handleChartFunction(functionName, args) {
+      let config;
+
+      switch (functionName) {
+        case 'create_line_chart':
+          config = createLineChart(args);
+          break;
+        case 'create_bar_chart':
+          config = createBarChart(args);
+          break;
+        case 'create_pie_chart':
+          config = createPieChart(args);
+          break;
+        default:
+          return `Error: Unknown function ${functionName}`;
+      }
+
+      const chartUrl = generateQuickChartUrl(config);
+      return `![${args.title}](${chartUrl})`;
+    }
+
+    // Initialize chat
     async function initializeChat() {
       const apiKeyInput = document.getElementById('apiKey');
       const dataUrlInput = document.getElementById('dataUrl');
@@ -274,10 +464,7 @@
         loadButton.disabled = true;
         showStatus('loading', '⏳ Loading data from ' + dataUrl + '...');
 
-        // Determine file type from URL
         const fileType = dataUrl.endsWith('.json') ? 'json' : 'csv';
-
-        // Load data
         const data = await loadRemoteData(dataUrl, fileType);
 
         if (!data || (Array.isArray(data) && data.length === 0)) {
@@ -286,14 +473,12 @@
 
         showStatus('loading', `✓ Data loaded! (${Array.isArray(data) ? data.length : 'N/A'} rows). Initializing chat...`);
 
-        // Create system prompt with data context
         const systemPrompt = createDataContextPrompt(
           data,
-          'You are a helpful assistant that can analyze and answer questions about the provided dataset. When users ask about the data, provide clear and accurate answers based on the information available.',
+          'You are a helpful data analyst assistant. When users ask for visualizations or charts, use the appropriate chart creation functions to generate them.',
           50
         );
 
-        // Configure Deep Chat
         chatElement.directConnection = {
           openAI: {
             key: apiKey,
@@ -302,16 +487,25 @@
               model: 'gpt-4o',
               max_tokens: 2000,
               temperature: 0.7,
+              tools: chartFunctions,
+              function_handler: async (functionsDetails) => {
+                const results = [];
+                for (const detail of functionsDetails) {
+                  const args = JSON.parse(detail.arguments);
+                  const result = handleChartFunction(detail.name, args);
+                  results.push(result);
+                }
+                return results;
+              },
             },
           },
         };
 
-        // Show chat and hide config
         chatElement.classList.add('visible');
         configSection.style.display = 'none';
-        showStatus('success', `✅ Chat ready! Loaded ${Array.isArray(data) ? data.length : 'N/A'} rows of data. Ask me anything about it!`);
+        showStatus('success', `✅ Chat ready with chart generation! Ask me to visualize your data with charts.`);
 
-        console.log('Data loaded successfully!', Array.isArray(data) ? data.length : 'N/A', 'rows');
+        console.log('Data loaded successfully with chart support!');
       } catch (error) {
         console.error('Error:', error);
         showStatus('error', '❌ Failed to load data: ' + error.message);
@@ -338,12 +532,10 @@
       loadButton.disabled = false;
     }
 
-    // Set up event listeners when page loads
     window.addEventListener('load', () => {
       document.getElementById('loadButton').addEventListener('click', initializeChat);
       document.getElementById('resetButton').addEventListener('click', resetDemo);
 
-      // Allow Enter key to submit
       document.getElementById('apiKey').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') initializeChat();
       });
@@ -356,46 +548,41 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>🤖 Chat with Your CSV Data</h1>
-      <p>Load CSV/JSON data from Google Cloud Storage and chat with it using OpenAI</p>
-      <span class="badge">DEMO</span>
+      <h1>📊 Chat with CSV Data + Charts</h1>
+      <p>Load data and visualize it with AI-generated charts</p>
+      <span class="badge new">NEW</span>
+      <span class="badge">Charts Enabled</span>
     </div>
 
     <div class="content">
       <div class="info-box">
-        <h3>📊 What This Demo Does</h3>
+        <h3>🎨 Chart Generation Features</h3>
         <ul>
-          <li>Loads CSV or JSON files from any public URL (including Google Cloud Storage)</li>
-          <li>Parses the data and makes it available to OpenAI's GPT-4</li>
-          <li>Allows you to ask questions about your data in natural language</li>
-          <li>Get instant insights, summaries, and analysis of your dataset</li>
-        </ul>
-      </div>
-
-      <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
-        <h3 style="color: #856404;">⚠️ Important: CORS Configuration</h3>
-        <p style="margin-bottom: 10px;">Your CSV/JSON file must:</p>
-        <ul>
-          <li>Be publicly accessible (not require authentication)</li>
-          <li>Have CORS headers enabled to allow browser access</li>
-          <li>For Google Cloud Storage, run: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">gsutil cors set cors.json gs://your-bucket</code></li>
-        </ul>
-        <p style="margin-top: 10px;"><strong>Test URLs you can try:</strong></p>
-        <ul>
-          <li><code style="background: #fff; padding: 2px 6px; border-radius: 3px; font-size: 12px;">https://raw.githubusercontent.com/plotly/datasets/master/iris.csv</code></li>
-          <li><code style="background: #fff; padding: 2px 6px; border-radius: 3px; font-size: 12px;">https://raw.githubusercontent.com/datasets/covid-19/main/data/worldwide-aggregate.csv</code></li>
+          <li>✨ <strong>Automatic chart generation</strong> - Just ask "show me a line chart" or "create a pie chart"</li>
+          <li>📈 <strong>Line charts</strong> for trends and time series</li>
+          <li>📊 <strong>Bar charts</strong> for comparisons</li>
+          <li>🥧 <strong>Pie charts</strong> for distributions</li>
+          <li>🤖 <strong>AI-powered</strong> - OpenAI determines the best visualization for your question</li>
         </ul>
       </div>
 
       <div class="info-box">
         <h3>💡 Example Questions to Ask</h3>
         <ul>
-          <li>"What columns are in this dataset?"</li>
-          <li>"Show me a summary of the data"</li>
-          <li>"What are the first 5 rows?"</li>
-          <li>"What's the average value of [column name]?"</li>
-          <li>"Are there any interesting patterns or trends?"</li>
-          <li>"What's the maximum/minimum value for [column name]?"</li>
+          <li>"Show me a line chart of sepal length over the samples"</li>
+          <li>"Create a bar chart comparing average values by species"</li>
+          <li>"Make a pie chart showing the distribution of species"</li>
+          <li>"Visualize the correlation between petal length and width"</li>
+          <li>"Plot a chart showing trends in the data"</li>
+        </ul>
+      </div>
+
+      <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+        <h3 style="color: #856404;">⚠️ CORS Requirements</h3>
+        <p style="margin-bottom: 10px;">Test with these working URLs:</p>
+        <ul>
+          <li><code>https://raw.githubusercontent.com/plotly/datasets/master/iris.csv</code> - Iris dataset (150 rows)</li>
+          <li><code>https://raw.githubusercontent.com/plotly/datasets/master/tips.csv</code> - Restaurant tips data</li>
         </ul>
       </div>
 
@@ -407,8 +594,8 @@
         <input
           type="text"
           id="dataUrl"
-          placeholder="https://storage.googleapis.com/your-bucket/file.csv"
-          value=""
+          placeholder="https://raw.githubusercontent.com/plotly/datasets/master/iris.csv"
+          value="https://raw.githubusercontent.com/plotly/datasets/master/iris.csv"
         />
         <small>Enter the public URL of your CSV or JSON file</small>
 
@@ -423,7 +610,7 @@
         <small>⚠️ Your API key is only used in your browser and never sent anywhere except OpenAI</small>
 
         <button id="loadButton" style="margin-top: 20px;">
-          🚀 Load Data & Start Chat
+          🚀 Load Data & Start Chat with Charts
         </button>
       </div>
 
@@ -448,8 +635,9 @@
 
     <div class="footer">
       <p>
-        Built with <a href="https://deepchat.dev" target="_blank">Deep Chat</a> and
-        <a href="https://openai.com" target="_blank">OpenAI API</a>
+        Built with <a href="https://deepchat.dev" target="_blank">Deep Chat</a>,
+        <a href="https://openai.com" target="_blank">OpenAI API</a>, and
+        <a href="https://quickchart.io" target="_blank">QuickChart</a>
       </p>
       <p style="margin-top: 10px;">
         <a href="../../docs/directConnection/OpenAI/OpenAIWithData" target="_blank">📖 View Documentation</a>
