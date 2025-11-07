@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat with CSV Data - Deep Chat + OpenAI Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .header p {
+      font-size: 1.1em;
+      opacity: 0.95;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .info-box {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin-bottom: 25px;
+      border-radius: 4px;
+    }
+
+    .info-box h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+    }
+
+    .info-box ul {
+      margin-left: 20px;
+      line-height: 1.8;
+    }
+
+    .info-box li {
+      margin-bottom: 5px;
+    }
+
+    .config-section {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+
+    .config-section h3 {
+      color: #856404;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .config-section input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ffc107;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 10px;
+    }
+
+    .config-section button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 100%;
+    }
+
+    .config-section button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .config-section button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .config-section small {
+      color: #856404;
+      display: block;
+      margin-top: 5px;
+      font-size: 13px;
+    }
+
+    .chat-container {
+      margin-top: 25px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .status {
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .status.loading {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      background: #f8f9fa;
+      color: #6c757d;
+      font-size: 14px;
+    }
+
+    .footer a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    #chat {
+      display: none;
+    }
+
+    #chat.visible {
+      display: block;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+  </style>
+  <script type="module">
+    // Data loader utilities
+    async function fetchRemoteData(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      return await response.text();
+    }
+
+    function parseCSV(csvText, delimiter = ',') {
+      const lines = csvText.trim().split('\n');
+      if (lines.length === 0) return [];
+
+      const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+        if (values.length === headers.length) {
+          const row = {};
+          headers.forEach((header, index) => { row[header] = values[index]; });
+          data.push(row);
+        }
+      }
+      return data;
+    }
+
+    async function loadRemoteData(url, type = 'csv') {
+      const rawData = await fetchRemoteData(url);
+      if (type === 'csv') return parseCSV(rawData);
+      if (type === 'json') return JSON.parse(rawData);
+      throw new Error(`Unsupported type: ${type}`);
+    }
+
+    function createDataContextPrompt(data, basePrompt = '', maxRows = 50) {
+      const limitedData = data.slice(0, maxRows);
+      const headers = Object.keys(limitedData[0]);
+
+      let formatted = `${basePrompt}\n\nYou have access to the following dataset:\n\n`;
+      formatted += `Data Summary (${data.length} total rows, showing ${limitedData.length}):\n`;
+      formatted += `Columns: ${headers.join(', ')}\n\nSample Data:\n`;
+
+      limitedData.forEach((row, index) => {
+        formatted += `Row ${index + 1}: ${JSON.stringify(row)}\n`;
+      });
+
+      return formatted;
+    }
+
+    // Initialize function
+    async function initializeChat() {
+      const apiKeyInput = document.getElementById('apiKey');
+      const dataUrlInput = document.getElementById('dataUrl');
+      const loadButton = document.getElementById('loadButton');
+      const statusDiv = document.getElementById('status');
+      const chatElement = document.getElementById('chat');
+      const configSection = document.getElementById('configSection');
+
+      const apiKey = apiKeyInput.value.trim();
+      const dataUrl = dataUrlInput.value.trim();
+
+      if (!apiKey) {
+        showStatus('error', '❌ Please enter your OpenAI API key');
+        return;
+      }
+
+      if (!dataUrl) {
+        showStatus('error', '❌ Please enter a data URL');
+        return;
+      }
+
+      try {
+        loadButton.disabled = true;
+        showStatus('loading', '⏳ Loading data from ' + dataUrl + '...');
+
+        // Determine file type from URL
+        const fileType = dataUrl.endsWith('.json') ? 'json' : 'csv';
+
+        // Load data
+        const data = await loadRemoteData(dataUrl, fileType);
+
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+          throw new Error('No data loaded from file');
+        }
+
+        showStatus('loading', `✓ Data loaded! (${Array.isArray(data) ? data.length : 'N/A'} rows). Initializing chat...`);
+
+        // Create system prompt with data context
+        const systemPrompt = createDataContextPrompt(
+          data,
+          'You are a helpful assistant that can analyze and answer questions about the provided dataset. When users ask about the data, provide clear and accurate answers based on the information available.',
+          50
+        );
+
+        // Configure Deep Chat
+        chatElement.directConnection = {
+          openAI: {
+            key: apiKey,
+            chat: {
+              system_prompt: systemPrompt,
+              model: 'gpt-4o',
+              max_tokens: 2000,
+              temperature: 0.7,
+            },
+          },
+        };
+
+        // Show chat and hide config
+        chatElement.classList.add('visible');
+        configSection.style.display = 'none';
+        showStatus('success', `✅ Chat ready! Loaded ${Array.isArray(data) ? data.length : 'N/A'} rows of data. Ask me anything about it!`);
+
+        console.log('Data loaded successfully!', Array.isArray(data) ? data.length : 'N/A', 'rows');
+      } catch (error) {
+        console.error('Error:', error);
+        showStatus('error', '❌ Failed to load data: ' + error.message);
+        loadButton.disabled = false;
+      }
+    }
+
+    function showStatus(type, message) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = 'status ' + type;
+      statusDiv.textContent = message;
+      statusDiv.style.display = 'block';
+    }
+
+    function resetDemo() {
+      const chatElement = document.getElementById('chat');
+      const configSection = document.getElementById('configSection');
+      const statusDiv = document.getElementById('status');
+      const loadButton = document.getElementById('loadButton');
+
+      chatElement.classList.remove('visible');
+      configSection.style.display = 'block';
+      statusDiv.style.display = 'none';
+      loadButton.disabled = false;
+    }
+
+    // Set up event listeners when page loads
+    window.addEventListener('load', () => {
+      document.getElementById('loadButton').addEventListener('click', initializeChat);
+      document.getElementById('resetButton').addEventListener('click', resetDemo);
+
+      // Allow Enter key to submit
+      document.getElementById('apiKey').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') initializeChat();
+      });
+      document.getElementById('dataUrl').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') initializeChat();
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🤖 Chat with Your CSV Data</h1>
+      <p>Load CSV/JSON data from Google Cloud Storage and chat with it using OpenAI</p>
+      <span class="badge">DEMO</span>
+    </div>
+
+    <div class="content">
+      <div class="info-box">
+        <h3>📊 What This Demo Does</h3>
+        <ul>
+          <li>Loads CSV or JSON files from any public URL (including Google Cloud Storage)</li>
+          <li>Parses the data and makes it available to OpenAI's GPT-4</li>
+          <li>Allows you to ask questions about your data in natural language</li>
+          <li>Get instant insights, summaries, and analysis of your dataset</li>
+        </ul>
+      </div>
+
+      <div class="info-box">
+        <h3>💡 Example Questions to Ask</h3>
+        <ul>
+          <li>"What columns are in this dataset?"</li>
+          <li>"Show me a summary of the data"</li>
+          <li>"What are the first 5 rows?"</li>
+          <li>"What's the average value of [column name]?"</li>
+          <li>"Are there any interesting patterns or trends?"</li>
+          <li>"What's the maximum/minimum value for [column name]?"</li>
+        </ul>
+      </div>
+
+      <div id="configSection" class="config-section">
+        <h3>⚙️ Configuration</h3>
+        <label for="dataUrl" style="display: block; margin-bottom: 5px; font-weight: 600;">
+          Data URL (CSV or JSON):
+        </label>
+        <input
+          type="text"
+          id="dataUrl"
+          placeholder="https://storage.googleapis.com/your-bucket/file.csv"
+          value="https://storage.googleapis.com/gdsshopify/MonteCarlo.csv"
+        />
+        <small>Enter the public URL of your CSV or JSON file</small>
+
+        <label for="apiKey" style="display: block; margin: 20px 0 5px 0; font-weight: 600;">
+          OpenAI API Key:
+        </label>
+        <input
+          type="password"
+          id="apiKey"
+          placeholder="sk-..."
+        />
+        <small>⚠️ Your API key is only used in your browser and never sent anywhere except OpenAI</small>
+
+        <button id="loadButton" style="margin-top: 20px;">
+          🚀 Load Data & Start Chat
+        </button>
+      </div>
+
+      <div id="status" class="status" style="display: none;"></div>
+
+      <div class="chat-container">
+        <deep-chat
+          id="chat"
+          style="height: 600px; width: 100%;"
+        ></deep-chat>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <button
+          id="resetButton"
+          style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;"
+        >
+          🔄 Reset & Try Another Dataset
+        </button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>
+        Built with <a href="https://deepchat.dev" target="_blank">Deep Chat</a> and
+        <a href="https://openai.com" target="_blank">OpenAI API</a>
+      </p>
+      <p style="margin-top: 10px;">
+        <a href="../../docs/directConnection/OpenAI/OpenAIWithData" target="_blank">📖 View Documentation</a>
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/deep-chat"></script>
+</body>
+</html>
